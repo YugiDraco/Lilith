@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Download, Upload, RotateCcw, Sparkles, LayoutGrid, SlidersHorizontal, UserCheck } from 'lucide-react';
+import { ShieldCheck, Download, Upload, RotateCcw, Sparkles, LayoutGrid, SlidersHorizontal, Wand2, UserCheck } from 'lucide-react';
 import { CHARACTER_PRESETS } from '../data/presets';
 
 export default function Navbar({ character, activePage, setActivePage, onSelectPreset, onExportJSON, onImportJSON, onReset }) {
@@ -16,31 +16,31 @@ export default function Navbar({ character, activePage, setActivePage, onSelectP
   return (
     <header className="glass-panel sticky top-0 z-40 border-b border-slate-800 px-4 py-3">
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-        {/* Brand & Page Navigation */}
+        {/* Brand & Mode Switcher */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-brand-accent flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActivePage('welcome')}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-brand-accent flex items-center justify-center text-white shadow-lg shadow-brand-500/30 glow-brand">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <h1 className="font-extrabold text-lg text-white font-sans tracking-tight flex items-center gap-2">
-                Lilith V2 <span className="text-[10px] font-semibold text-brand-400 bg-brand-500/20 px-2 py-0.5 rounded border border-brand-500/30">AI Companion</span>
+                Lilith V3 <span className="text-[10px] font-semibold text-brand-400 bg-brand-500/20 px-2 py-0.5 rounded border border-brand-500/30">AI Platform</span>
               </h1>
-              <p className="text-[11px] text-slate-400">AAA Game-Quality Character Platform (18+)</p>
+              <p className="text-[11px] text-slate-400">Live AI Companion Experience (18+)</p>
             </div>
           </div>
 
-          {/* View Switcher: Library vs Studio */}
+          {/* Mode Switcher Buttons */}
           <div className="hidden sm:flex items-center bg-dark-900/90 border border-slate-800 p-1 rounded-xl gap-1">
             <button
-              onClick={() => setActivePage('library')}
+              onClick={() => setActivePage('wizard')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                activePage === 'library'
+                activePage === 'wizard'
                   ? 'bg-brand-600 text-white shadow-md shadow-brand-500/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" /> Library
+              <Wand2 className="w-3.5 h-3.5" /> Guided Creator
             </button>
             <button
               onClick={() => setActivePage('studio')}
@@ -50,7 +50,17 @@ export default function Navbar({ character, activePage, setActivePage, onSelectP
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Creator Studio
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Studio Mode
+            </button>
+            <button
+              onClick={() => setActivePage('library')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                activePage === 'library'
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Vault
             </button>
           </div>
         </div>
