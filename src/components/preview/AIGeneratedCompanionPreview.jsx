@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PreviewApi } from '../../services/image/PreviewApi';
 import { imageHistory } from '../../services/image/ImageHistory';
-import { Sparkles, ShieldCheck, Heart, Volume2, Lock, RefreshCw, Camera, Download, Bookmark, Undo2 } from 'lucide-react';
+import { Sparkles, ShieldCheck, Heart, Volume2, Lock, RefreshCw, Camera, Download, Bookmark } from 'lucide-react';
 
 export default function AIGeneratedCompanionPreview({ character, activeVariation = 'portrait', onSelectVariation }) {
   const [currentImage, setCurrentImage] = useState(null);
@@ -21,7 +21,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
     image = {}
   } = character;
 
-  // 700 ms Debounced AI Preview Generation Queue via PreviewApi
+  // 700 ms Debounced AI Preview Queue with 4-stage Framer Motion blur cross-fade
   useEffect(() => {
     let isMounted = true;
     setIsGenerating(true);
@@ -31,8 +31,6 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
         setCurrentImage(res);
         setIsCached(res.isCached);
         setIsGenerating(false);
-
-        // Record in history
         imageHistory.addEntry(res);
       }
     });
@@ -41,7 +39,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
       isMounted = false;
     };
   }, [
-    character.identity?.id,
+    character.identity?.id, character.image?.seed,
     hair.assetId, hair.style, hair.baseColor, hair.highlights,
     eyes.assetId, eyes.color, skin.assetId, skin.tone,
     clothing.activeCategory, clothing.outfitAssetId,
@@ -83,13 +81,13 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
     <div className="glass-panel rounded-3xl p-6 border border-slate-700/60 shadow-2xl flex flex-col h-full relative overflow-hidden glow-brand">
       {/* Ambient Lighting Aura Background */}
       <div
-        className="absolute inset-0 opacity-25 blur-3xl pointer-events-none transition-all duration-700"
+        className="absolute inset-0 opacity-30 blur-3xl pointer-events-none transition-all duration-700"
         style={{
           background: `radial-gradient(circle at 50% 30%, ${hair.highlights || '#6366f1'}, ${skin.tone || '#fcd34d'}, transparent 70%)`
         }}
       />
 
-      {/* Top HUD Status & History Bar */}
+      {/* Top HUD Status & History Tools */}
       <div className="relative z-10 pb-3 mb-3 border-b border-slate-800 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -101,7 +99,6 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
             </span>
           </div>
 
-          {/* Action Tools: Download, Favorite */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleToggleFavorite}
@@ -145,7 +142,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
           </div>
         </div>
 
-        {/* Mood & Relationship Status Badges */}
+        {/* Mood & Relationship Badges */}
         <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
           <div className="bg-dark-900/90 backdrop-blur-md p-2 rounded-xl border border-slate-800 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-brand-accent flex-shrink-0" />
@@ -165,16 +162,17 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
         </div>
       </div>
 
-      {/* Main Pure AI Image Preview Display (Zero SVG Mannequin) */}
+      {/* Main Companion Preview (4-Stage Framer Motion Blur Cross-Fade Transition) */}
       <div className="relative flex-1 bg-dark-900/95 rounded-2xl border border-slate-800 flex items-center justify-center p-2 min-h-[440px] overflow-hidden group">
-        {/* Animated Loading Shimmer & Particles Overlay */}
+        {/* Animated Shimmer Overlay */}
         <AnimatePresence>
           {isGenerating && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-30 bg-dark-900/85 backdrop-blur-md flex flex-col items-center justify-center gap-3 text-brand-400"
+              initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+              animate={{ opacity: 1, backdropFilter: 'blur(12px)' }}
+              exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-30 bg-dark-900/80 flex flex-col items-center justify-center gap-3 text-brand-400"
             >
               <div className="relative flex items-center justify-center">
                 <RefreshCw className="w-10 h-10 animate-spin text-brand-400" />
@@ -183,25 +181,25 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
 
               <div className="text-center space-y-1">
                 <span className="text-xs font-extrabold text-white tracking-widest uppercase font-sans animate-pulse block">
-                  Synthesizing AI Companion Preview...
+                  Creating your companion...
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  Preserving Identity Token & Facial Features (700ms Debounce)
+                  Synthesizing Identity Lock & Visual Assets
                 </span>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Pure AI Rendered Character Portrait Photograph (NO SVG Mannequin) */}
+        {/* 100% Pure AI Rendered Character Portrait Photograph */}
         <AnimatePresence mode="wait">
           {currentImage?.url && (
             <motion.div
               key={currentImage.url}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              initial={{ opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 1.03, filter: 'blur(8px)' }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
               className="w-full h-full flex flex-col items-center justify-center relative z-10"
             >
               <img
@@ -213,7 +211,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
               {/* Cache Indicator Badge */}
               {isCached && (
                 <div className="absolute top-3 right-3 bg-dark-900/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-mono text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-md">
-                  <Sparkles className="w-3 h-3 text-emerald-400" /> Cached Render
+                  <Sparkles className="w-3 h-3 text-emerald-400" /> Instant Cached Render
                 </div>
               )}
             </motion.div>
@@ -221,7 +219,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
         </AnimatePresence>
       </div>
 
-      {/* Variation Quick Switcher Bar */}
+      {/* Variation Quick Switcher */}
       <div className="relative z-10 mt-3 pt-3 border-t border-slate-800 space-y-2">
         <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
           <span className="flex items-center gap-1">

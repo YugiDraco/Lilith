@@ -1,66 +1,91 @@
 import React from 'react';
-import { ART_STYLES } from '../../../types/character';
-import { Sparkles, Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 
 export default function Step1_Style({ character, onChange }) {
   const currentStyle = character.image?.artStyle || 'Hyperrealistic Photographic';
 
   const styles = [
-    { name: 'Hyperrealistic Photographic', desc: 'Photorealistic 8K camera detail, natural lighting, studio quality.', icon: '📸', color: '#6366f1' },
-    { name: 'Cinematic 8K 3D Render', desc: 'AAA video game CG quality, dramatic rim lighting, detailed textures.', icon: '🎮', color: '#ec4899' },
-    { name: 'Anime / Stylized CG', desc: 'Vibrant stylized anime rendering, expressive eyes, sleek linework.', icon: '✨', color: '#38bdf8' },
-    { name: 'Dark Fantasy Oil Canvas', desc: 'Moody atmospheric fantasy artwork, painterly brushwork.', icon: '🗡️', color: '#d97706' },
-    { name: 'Cyberpunk Neon Sci-Fi', desc: 'Futuristic neon aesthetics, cyan/magenta contrast, sci-fi accents.', icon: '🌆', color: '#06b6d4' }
+    {
+      id: 'Hyperrealistic Photographic',
+      name: 'Photorealistic',
+      desc: 'Studio lighting, depth of field, natural skin texture & realistic details.',
+      badge: 'Realistic',
+      icon: '📸'
+    },
+    {
+      id: 'Anime / Stylized CG',
+      name: 'Anime & CG',
+      desc: 'Vibrant stylized aesthetics, expressive eyes & smooth cel shading.',
+      badge: 'Anime',
+      icon: '✨'
+    },
+    {
+      id: 'Cyberpunk Neon Sci-Fi',
+      name: 'Cyberpunk',
+      desc: 'High-tech neon rim lighting, futuristic gear & dark urban backdrop.',
+      badge: 'Cyberpunk',
+      icon: '🌆'
+    },
+    {
+      id: 'Dark Fantasy Oil Canvas',
+      name: 'Dark Fantasy',
+      desc: 'Rich oil-painted textures, dramatic lighting & ethereal atmosphere.',
+      badge: 'Fantasy',
+      icon: '🔮'
+    }
   ];
 
-  const handleSelectStyle = (styleName) => {
+  const handleSelectStyle = (styleObj) => {
+    // Generate new random seed on style change for instant fresh companion preview
+    const newSeed = Math.floor(Math.random() * 9000000) + 1000000;
     onChange({
       ...character,
       image: {
         ...character.image,
-        artStyle: styleName
+        artStyle: styleObj.id,
+        seed: newSeed
       }
     });
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fadeIn">
       <div>
         <span className="text-[10px] font-extrabold text-brand-400 uppercase tracking-widest block font-sans">Step 1 of 10</span>
-        <h2 className="text-2xl font-extrabold text-white font-sans tracking-tight">Choose Aesthetic & Art Style</h2>
-        <p className="text-xs text-slate-400 mt-1">Select the overall visual fidelity and art direction for your AI companion.</p>
+        <h2 className="text-2xl font-extrabold text-white font-sans tracking-tight">Choose Art & Visual Style</h2>
+        <p className="text-xs text-slate-400 mt-1">Select a visual aesthetic. Your companion is generated immediately.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {styles.map(s => {
-          const isSelected = currentStyle === s.name;
+          const isSelected = currentStyle === s.id;
           return (
             <button
-              key={s.name}
-              onClick={() => handleSelectStyle(s.name)}
-              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+              key={s.id}
+              onClick={() => handleSelectStyle(s)}
+              className={`p-5 rounded-3xl border text-left transition flex flex-col justify-between space-y-3 group ${
                 isSelected
                   ? 'bg-gradient-to-br from-brand-600/30 to-brand-accent/20 border-brand-500 ring-2 ring-brand-500/40 shadow-xl glow-brand'
                   : 'bg-dark-900/90 border-slate-800 hover:border-slate-700 hover:bg-dark-800/80'
               }`}
             >
-              <div className="flex justify-between items-start mb-3">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-inner border border-slate-700/60"
-                  style={{ backgroundColor: s.color }}
-                >
-                  {s.icon}
-                </div>
-
-                {isSelected && (
+              <div className="flex justify-between items-center">
+                <span className="text-3xl">{s.icon}</span>
+                {isSelected ? (
                   <span className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-md">
                     <Check className="w-4 h-4" />
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-slate-500 group-hover:text-brand-400 uppercase tracking-wider">
+                    {s.badge}
                   </span>
                 )}
               </div>
 
               <div>
-                <h3 className="font-bold text-sm text-white font-sans">{s.name}</h3>
+                <h3 className="font-extrabold text-sm text-white font-sans flex items-center gap-1.5">
+                  {s.name} {isSelected && <Sparkles className="w-3.5 h-3.5 text-brand-accent animate-pulse" />}
+                </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">{s.desc}</p>
               </div>
             </button>
