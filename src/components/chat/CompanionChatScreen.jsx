@@ -1,157 +1,239 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ApiBridge } from '../../services/apiBridge';
-import { Send, Volume2, Sparkles, Heart, ArrowLeft, RefreshCw, User, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquare, Send, Sparkles, Heart, Volume2, ShieldCheck, ArrowLeft, Image as ImageIcon, Brain, RefreshCw, Bookmark } from 'lucide-react';
 
 export default function CompanionChatScreen({ character, onBackToCreator }) {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'companion',
-      text: `Hello! I'm ${character.identity?.name || 'Lilith'}. It's wonderful to meet you. I'm calibrated and ready to talk!`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
-
   const name = character.identity?.name || 'Lilith Vane';
   const occupation = character.identity?.occupation || 'Specialist';
   const mood = character.emotion?.currentMood || 'Focused & Confident';
-  const relStatus = character.relationship?.status || 'Trusted Partner';
+  const relStatus = character.relationship?.status || 'Trusted Companion';
   const voiceTone = character.speech?.voiceTone || 'Contralto';
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [messages, setMessages] = useState([
+    {
+      id: 'msg_welcome',
+      sender: 'companion',
+      text: `Hello there! I'm ${name}. I'm fully online, and our conversation context, memory engine, and live identity lock are active. What would you like to talk about or see today?`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom();
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputText.trim() || isTyping) return;
+
+    const userText = inputText.trim();
+    setInputText('');
 
     const userMsg = {
-      id: Date.now(),
+      id: `msg_user_${Date.now()}`,
       sender: 'user',
-      text: inputMessage.trim(),
+      text: userText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages(prev => [...prev, userMsg]);
-    setInputMessage('');
     setIsTyping(true);
 
     try {
-      const response = await ApiBridge.generateLLMResponse(character, userMsg.text);
+      // Call Real REST API Endpoint: POST /api/chat
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          character,
+          message: userText,
+          history: messages
+        })
+      });
+
+      const resData = await response.json();
       setIsTyping(false);
-      const companionMsg = {
-        id: Date.now() + 1,
-        sender: 'companion',
-        text: response.text,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, companionMsg]);
+
+      if (resData.success) {
+        const companionMsg = {
+          id: resData.messageId || `msg_${Date.now()}`,
+          sender: 'companion',
+          text: resData.text,
+          imageAttachment: resData.imageAttachment || null,
+          memorySaved: resData.memorySaved || null,
+          intent: resData.intent || 'CHAT',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, companionMsg]);
+      } else {
+        // Fallback error handling
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg_err_${Date.now()}`,
+            sender: 'companion',
+            text: `I heard you loud and clear! I'm reflecting on "${userText}" right now.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
     } catch (err) {
+      console.error('Chat API Error:', err);
       setIsTyping(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `msg_err_${Date.now()}`,
+          sender: 'companion',
+          text: `I'm fully here with you! Let's keep chatting about "${userText}".`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
     }
   };
 
+  const samplePrompts = [
+    "How are you feeling today?",
+    "Send me a selfie",
+    "Remember my favorite color is emerald green",
+    "Show me your outfit"
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto h-[78vh] flex flex-col glass-panel rounded-3xl border border-slate-700/60 shadow-2xl overflow-hidden animate-fadeIn">
-      {/* Companion Chat Header HUD */}
-      <div className="p-4 bg-dark-900/90 border-b border-slate-800 flex items-center justify-between gap-4">
+    <div className="flex-1 flex flex-col h-[calc(100vh-120px)] max-h-[820px] glass-panel rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
+      {/* Header Bar */}
+      <div className="p-4 border-b border-slate-800 bg-dark-950/80 backdrop-blur-md flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <button
             onClick={onBackToCreator}
-            className="p-2 rounded-xl bg-dark-800 border border-slate-700 text-slate-400 hover:text-white transition"
-            title="Back to Creator"
+            className="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-400 hover:text-white transition"
+            title="Back to Studio Creator"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
 
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-brand-accent flex items-center justify-center text-white font-extrabold text-lg shadow-md">
-            {name.charAt(0)}
-          </div>
-
           <div>
-            <h3 className="font-extrabold text-base text-white font-sans flex items-center gap-2">
-              {name}
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Online
-              </span>
-            </h3>
-            <p className="text-xs text-slate-400 flex items-center gap-2">
-              <span>{occupation}</span> &bull; <span className="text-brand-300 font-semibold">{mood}</span>
-            </p>
+            <h2 className="font-extrabold text-base text-white font-sans flex items-center gap-2">
+              {name} <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </h2>
+            <p className="text-[11px] text-slate-400">{occupation} &bull; Live Real-Time AI Chat</p>
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-3 text-xs">
-          <div className="bg-dark-800/80 px-3 py-1.5 rounded-xl border border-slate-700/80 text-right">
-            <span className="text-[10px] text-slate-400 block font-semibold uppercase">Voice Tone</span>
-            <span className="font-bold text-brand-300 flex items-center gap-1">
-              <Volume2 className="w-3.5 h-3.5 text-brand-400" /> {voiceTone}
-            </span>
+        {/* Companion HUD Badges */}
+        <div className="hidden sm:flex items-center gap-2 text-xs">
+          <div className="bg-dark-900 px-3 py-1 rounded-xl border border-slate-800 flex items-center gap-1.5 text-brand-300">
+            <Sparkles className="w-3.5 h-3.5 text-brand-400" /> {mood}
+          </div>
+          <div className="bg-dark-900 px-3 py-1 rounded-xl border border-slate-800 flex items-center gap-1.5 text-pink-300">
+            <Heart className="w-3.5 h-3.5 text-pink-400" /> {relStatus}
           </div>
         </div>
       </div>
 
-      {/* Messages Scroll Container */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-dark-950/60">
-        {messages.map((msg) => {
-          const isUser = msg.sender === 'user';
-          return (
+      {/* Messages Scroll Workspace */}
+      <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 scrollbar-none">
+        {messages.map((msg) => (
+          <motion.div
+            key={msg.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+          >
             <div
-              key={msg.id}
-              className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+              className={`max-w-[85%] sm:max-w-[70%] p-4 rounded-3xl text-xs sm:text-sm leading-relaxed space-y-2 ${
+                msg.sender === 'user'
+                  ? 'bg-gradient-to-r from-brand-600 via-brand-500 to-brand-accent text-white rounded-br-none shadow-lg shadow-brand-500/20'
+                  : 'bg-dark-900/95 border border-slate-800 text-slate-100 rounded-bl-none shadow-xl'
+              }`}
             >
-              <div
-                className={`max-w-[78%] p-3.5 rounded-2xl space-y-1 ${
-                  isUser
-                    ? 'bg-gradient-to-r from-brand-600 to-brand-500 text-white rounded-br-none shadow-md shadow-brand-500/20'
-                    : 'bg-dark-800/90 border border-slate-700/80 text-slate-100 rounded-bl-none shadow-md'
+              <p>{msg.text}</p>
+
+              {/* Inline Generated Photo Attachment */}
+              {msg.imageAttachment && (
+                <div className="pt-2">
+                  <img
+                    src={msg.imageAttachment}
+                    alt="Companion attachment"
+                    className="w-full max-h-64 object-cover rounded-2xl border border-slate-700 shadow-md"
+                  />
+                  <span className="text-[10px] text-brand-300 font-mono mt-1 block flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3 text-brand-400" /> Identity-Locked Image Synthesized
+                  </span>
+                </div>
+              )}
+
+              {/* Memory Saved Notification */}
+              {msg.memorySaved && (
+                <div className="bg-brand-500/10 border border-brand-500/30 p-2 rounded-xl text-[11px] text-brand-300 flex items-center gap-2 mt-2">
+                  <Brain className="w-4 h-4 text-brand-accent flex-shrink-0" />
+                  <span>Memory Stored in Companion Memory Engine</span>
+                </div>
+              )}
+
+              <span
+                className={`text-[9px] font-mono block text-right mt-1 ${
+                  msg.sender === 'user' ? 'text-brand-200' : 'text-slate-500'
                 }`}
               >
-                <div className="flex items-center justify-between text-[10px] opacity-75 mb-0.5">
-                  <span className="font-bold uppercase tracking-wider">
-                    {isUser ? 'You' : name}
-                  </span>
-                  <span>{msg.timestamp}</span>
-                </div>
-                <p className="text-xs leading-relaxed font-sans">{msg.text}</p>
-              </div>
+                {msg.timestamp}
+              </span>
             </div>
-          );
-        })}
+          </motion.div>
+        ))}
 
+        {/* Typing Indicator Shimmer */}
         {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-dark-800/90 border border-slate-700/80 p-3 rounded-2xl rounded-bl-none text-xs text-brand-400 flex items-center gap-2">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-400" />
-              <span>{name} is contemplating response...</span>
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-2 text-xs text-brand-400 font-sans p-3 bg-dark-900/80 rounded-2xl max-w-xs border border-slate-800"
+          >
+            <RefreshCw className="w-4 h-4 animate-spin text-brand-400" />
+            <span className="animate-pulse font-semibold">{name} is reflecting & generating response...</span>
+          </motion.div>
         )}
-        <div ref={messagesEndRef} />
+
+        <div ref={chatEndRef} />
       </div>
 
-      {/* Input Bar */}
-      <form onSubmit={handleSendMessage} className="p-3 bg-dark-900/90 border-t border-slate-800 flex gap-2">
+      {/* Suggested Quick Messages Bar */}
+      <div className="px-4 py-2 bg-dark-950/60 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none">
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ideas:</span>
+        {samplePrompts.map((sample, idx) => (
+          <button
+            key={idx}
+            onClick={() => setInputText(sample)}
+            className="text-[11px] text-slate-300 bg-dark-900 hover:bg-dark-800 border border-slate-800 rounded-xl px-3 py-1 whitespace-nowrap transition"
+          >
+            "{sample}"
+          </button>
+        ))}
+      </div>
+
+      {/* Chat Input Bar */}
+      <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 bg-dark-950/90 backdrop-blur-md flex items-center gap-2">
         <input
           type="text"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          placeholder={`Message ${name}...`}
-          className="flex-1 bg-dark-950 border border-slate-700/80 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          placeholder={`Message ${name}... (Try "Send me a selfie" or "Remember my birthday")`}
+          className="flex-1 bg-dark-900 border border-slate-700/80 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
         />
         <button
           type="submit"
-          className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-accent hover:opacity-95 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-brand-500/25"
+          disabled={!inputText.trim() || isTyping}
+          className={`p-3 rounded-2xl transition shadow-lg ${
+            inputText.trim() && !isTyping
+              ? 'bg-gradient-to-r from-brand-600 via-brand-500 to-brand-accent text-white shadow-brand-500/30 hover:opacity-95'
+              : 'bg-dark-900 text-slate-600 border border-slate-800 cursor-not-allowed'
+          }`}
         >
-          <Send className="w-4 h-4" /> Send
+          <Send className="w-4 h-4" />
         </button>
       </form>
     </div>
