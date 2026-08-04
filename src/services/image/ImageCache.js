@@ -1,4 +1,4 @@
-import { IdentityProfile } from './IdentityProfile';
+import { IdentityProfile } from './IdentityProfile.js';
 
 /**
  * Smart Image Cache & Request Deduplication Manager for Lilith V3

@@ -1,4 +1,4 @@
-import { IdentityProfile } from './IdentityProfile';
+import { IdentityProfile } from './IdentityProfile.js';
 
 /**
  * Modular Prompt Builder for Lilith V3
@@ -43,7 +43,6 @@ export class PromptBuilder {
     const env = image.environmentAssetId || 'Modern Penthouse Studio';
     const lighting = image.lightingAssetId || 'Soft Studio Cinematic';
 
-    // Shot type camera spec
     let cameraSpec = '85mm portrait lens, f/1.4 aperture, eye-level focus, soft bokeh background';
     if (shotType === 'fullbody') cameraSpec = 'full body shot, 35mm lens, standing posture, full head-to-toe framing';
     else if (shotType === 'selfie') cameraSpec = 'intimate high-angle selfie shot, front-facing camera, natural holding pose';

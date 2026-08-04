@@ -1,8 +1,8 @@
-import { PromptBuilder } from './PromptBuilder';
-import { IdentityProfile } from './IdentityProfile';
-import { imageCache } from './ImageCache';
-import { LocalAiAdapter } from './adapters/LocalAiAdapter';
-import { ExternalApiAdapter } from './adapters/ExternalApiAdapter';
+import { PromptBuilder } from './PromptBuilder.js';
+import { IdentityProfile } from './IdentityProfile.js';
+import { imageCache } from './ImageCache.js';
+import { LocalAiAdapter } from './adapters/LocalAiAdapter.js';
+import { ExternalApiAdapter } from './adapters/ExternalApiAdapter.js';
 
 /**
  * Master ImageService for Lilith V3

@@ -1,8 +1,9 @@
 import { ImageService } from './ImageService';
 
 /**
- * Preview API for Lilith V3
- * Provides 700 ms debounced background image generation, rate limiting, and request validation.
+ * REST Client Preview API for Lilith V3
+ * Delegates requests to Express REST Backend (/api/images/preview, /fullbody, /selfie, /gallery)
+ * Enforces 700 ms debouncing and fallback handling.
  */
 
 class PreviewApiManager {
@@ -18,16 +19,39 @@ class PreviewApiManager {
 
     this.debounceTimer = setTimeout(async () => {
       try {
-        const res = await ImageService.generateShot(character, shotType);
-        if (callback) callback(res);
+        const endpoint = shotType === 'fullbody' ? '/api/images/fullbody' : shotType === 'selfie' ? '/api/images/selfie' : '/api/images/preview';
+
+        let resData;
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ character, shotType })
+          });
+          resData = await response.json();
+        } catch (fetchErr) {
+          // Client-side fallback if Express server is unreachable
+          resData = await ImageService.generateShot(character, shotType);
+        }
+
+        if (callback) callback(resData);
       } catch (err) {
-        console.error('PreviewApi error:', err);
+        console.error('PreviewApi client error:', err);
       }
     }, this.debounceMs);
   }
 
-  async requestPreviewImmediate(character, shotType = 'portrait') {
-    return ImageService.generateShot(character, shotType);
+  async requestGalleryImmediate(character) {
+    try {
+      const response = await fetch('/api/images/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character })
+      });
+      return await response.json();
+    } catch (err) {
+      return ImageService.generateGallery(character);
+    }
   }
 }
 

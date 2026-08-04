@@ -1,4 +1,4 @@
-import { BaseAdapter } from './BaseAdapter';
+import { BaseAdapter } from './BaseAdapter.js';
 
 /**
  * External AI Provider Adapter for Lilith V3
@@ -7,7 +7,7 @@ import { BaseAdapter } from './BaseAdapter';
  */
 
 export class ExternalApiAdapter extends BaseAdapter {
-  constructor(apiKey = import.meta.env?.VITE_AI_IMAGE_API_KEY) {
+  constructor(apiKey = process.env?.VITE_AI_IMAGE_API_KEY || process.env?.AI_IMAGE_API_KEY) {
     super('ExternalApiAdapter');
     this.apiKey = apiKey;
   }

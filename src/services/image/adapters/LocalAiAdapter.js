@@ -1,4 +1,4 @@
-import { BaseAdapter } from './BaseAdapter';
+import { BaseAdapter } from './BaseAdapter.js';
 
 /**
  * Local AI Procedural Canvas Render Adapter for Lilith V3
@@ -12,6 +12,13 @@ export class LocalAiAdapter extends BaseAdapter {
 
   async generate(promptObj, options = {}) {
     const { character, shotType = 'portrait', seed = 1234567 } = options;
+
+    // Node.js server environment fallback URL generator if document object is missing
+    if (typeof document === 'undefined') {
+      const encodedPrompt = encodeURIComponent(promptObj.positivePrompt);
+      return `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=800&height=1000&nologo=true`;
+    }
+
     return renderPhotorealisticCompanionCanvas(character, shotType, seed);
   }
 }
