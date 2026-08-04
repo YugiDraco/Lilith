@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImageService } from '../../services/ImageService';
-import { Sparkles, ShieldCheck, Heart, Volume2, Lock, RefreshCw, Layers, Camera } from 'lucide-react';
+import { ImagePreviewService } from '../../services/ImagePreviewService';
+import { Sparkles, ShieldCheck, Heart, Volume2, Lock, RefreshCw, Camera } from 'lucide-react';
 
 export default function AIGeneratedCompanionPreview({ character, activeVariation = 'portrait', onSelectVariation }) {
   const [imageUrl, setImageUrl] = useState(null);
@@ -10,23 +10,21 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
 
   const {
     identity = {},
-    appearance = {},
     hair = {},
     eyes = {},
     skin = {},
     clothing = {},
-    accessories = {},
     emotion = {},
     relationship = {},
     image = {}
   } = character;
 
-  // Generate or fetch cached AI image preview whenever styling or identity attributes change
+  // Fetch or generate AI preview on any visual attribute change
   useEffect(() => {
     let isMounted = true;
     setIsGenerating(true);
 
-    ImageService.generate(character, activeVariation).then(res => {
+    ImagePreviewService.fetchPreview(character, activeVariation).then(res => {
       if (isMounted) {
         setImageUrl(res.url);
         setIsCached(res.isCached);
@@ -39,16 +37,15 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
     };
   }, [
     character.identity?.id,
-    hair.assetId, hair.baseColor, eyes.assetId, eyes.color,
+    hair.assetId, hair.style, hair.baseColor, eyes.assetId, eyes.color,
     skin.assetId, skin.tone, clothing.activeCategory, clothing.outfitAssetId,
     image.artStyle, image.environmentAssetId, image.poseAssetId, activeVariation
   ]);
 
   const name = identity.name || 'Lilith Vane';
-  const age = identity.age || 24;
   const occupation = identity.occupation || 'Specialist';
   const mood = emotion.currentMood || 'Focused & Confident';
-  const relStatus = relationship.status || 'Trusted Companion';
+  const relStatus = relationship.status || 'Trusted Partner';
   const voiceTone = character.speech?.voiceTone || 'Contralto';
   const artStyle = image.artStyle || 'Hyperrealistic Photographic';
 
@@ -73,7 +70,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
         }}
       />
 
-      {/* Top HUD Bar */}
+      {/* Top HUD Status Bar */}
       <div className="relative z-10 pb-3 mb-3 border-b border-slate-800 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -126,7 +123,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
         </div>
       </div>
 
-      {/* Main Photorealistic AI Image Preview Display with Framer Motion Shimmer Loader */}
+      {/* Main Pure AI Image Preview Display (Zero SVG Mannequin) */}
       <div className="relative flex-1 bg-dark-900/95 rounded-2xl border border-slate-800 flex items-center justify-center p-2 min-h-[440px] overflow-hidden group">
         {/* Animated Loading Shimmer Overlay */}
         <AnimatePresence>
@@ -140,17 +137,17 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
               <RefreshCw className="w-9 h-9 animate-spin text-brand-400" />
               <div className="text-center space-y-1">
                 <span className="text-xs font-extrabold text-white tracking-widest uppercase font-sans animate-pulse block">
-                  Generating AI Appearance...
+                  Generating AI Companion Preview...
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  Preserving Facial Identity & Anatomy Lock
+                  Synthesizing Identity Lock & Visual Assets
                 </span>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Photorealistic AI Rendered Portrait */}
+        {/* Pure AI Rendered Character Portrait Photograph (NO SVG Mannequin) */}
         <AnimatePresence mode="wait">
           {imageUrl && (
             <motion.div
