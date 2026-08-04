@@ -1,27 +1,33 @@
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
-import CharacterPreviewAAA from './components/CharacterPreview';
+import AICompanionPreviewV3 from './components/preview/AICompanionPreviewV3';
 import AgeVerificationModal from './components/AgeVerificationModal';
 
 import CharacterLibrary from './components/pages/CharacterLibrary';
+import CompanionChatScreen from './components/chat/CompanionChatScreen';
 
-import VisualHairTab from './components/tabs/VisualHairTab';
-import VisualFaceTab from './components/tabs/VisualFaceTab';
-import VisualSkinTab from './components/tabs/VisualSkinTab';
-import VisualOutfitTab from './components/tabs/VisualOutfitTab';
-import BodyEditorTab from './components/tabs/BodyEditorTab';
-import VisualPersonalityTab from './components/tabs/VisualPersonalityTab';
-import MemoryStudioTab from './components/tabs/MemoryStudioTab';
-import EmotionRelationshipTab from './components/tabs/EmotionRelationshipTab';
-import AccessoriesEditorTab from './components/tabs/AccessoriesEditorTab';
+import WizardStepContainer from './components/wizard/WizardStepContainer';
+import BottomWizardBar from './components/wizard/BottomWizardBar';
+
+import Step1_Style from './components/wizard/steps/Step1_Style';
+import Step2_Ethnicity from './components/wizard/steps/Step2_Ethnicity';
+import Step3_Face from './components/wizard/steps/Step3_Face';
+import Step4_Hair from './components/wizard/steps/Step4_Hair';
+import Step5_Eyes from './components/wizard/steps/Step5_Eyes';
+import Step6_Body from './components/wizard/steps/Step6_Body';
+import Step7_Outfit from './components/wizard/steps/Step7_Outfit';
+import Step8_PersonalityVoice from './components/wizard/steps/Step8_PersonalityVoice';
+import Step9_StoryMemory from './components/wizard/steps/Step9_StoryMemory';
+import Step10_Complete from './components/wizard/steps/Step10_Complete';
+
 import ImageStudioTab from './components/tabs/ImageStudioTab';
 import VideoStudioTab from './components/tabs/VideoStudioTab';
 import JsonDataTab from './components/tabs/JsonDataTab';
 
-import { DEFAULT_CHARACTER_V2, validateCharacterV2 } from './types/characterV2';
+import { DEFAULT_CHARACTER_V2 } from './types/characterV2';
 import { CHARACTER_PRESETS } from './data/presets';
 import { downloadCharacterJSON, parseAndValidateJSON } from './utils/jsonExporter';
-import { Scissors, Smile, Sparkles, Shirt, Activity, Heart, BookOpen, Drama, Glasses, Image, Video, Code, ShieldCheck } from 'lucide-react';
+import { Sparkles, MessageSquare, Image, Video, Code, LayoutGrid, SlidersHorizontal, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function App() {
   const [characterList, setCharacterList] = useState([
@@ -29,8 +35,8 @@ export default function App() {
     ...CHARACTER_PRESETS.filter(p => p.id !== 'lilith_default').map(p => p.data)
   ]);
   const [activeCharacterId, setActiveCharacterId] = useState(DEFAULT_CHARACTER_V2.identity?.id);
-  const [activePage, setActivePage] = useState('studio'); // library, studio
-  const [activeTab, setActiveTab] = useState('hair'); // hair, face, skin, clothing, body, personality, memory, emotion, accessories, image, video, json
+  const [activePage, setActivePage] = useState('welcome'); // welcome, wizard, library, chat, image, video, json
+  const [currentStep, setCurrentStep] = useState(1);
   const [showAgeModal, setShowAgeModal] = useState(true);
 
   // Active character reference
@@ -64,7 +70,8 @@ export default function App() {
     };
     setCharacterList(prev => [newChar, ...prev]);
     setActiveCharacterId(newId);
-    setActivePage('studio');
+    setCurrentStep(1);
+    setActivePage('wizard');
   };
 
   const handleDuplicate = (targetChar) => {
@@ -105,7 +112,7 @@ export default function App() {
       };
       setCharacterList(prev => [imported, ...prev]);
       setActiveCharacterId(imported.identity.id);
-      alert('Character JSON successfully imported into Library!');
+      alert('Character JSON successfully imported into Vault!');
     } else {
       alert(`Import Failed:\n${res.errors.join('\n')}`);
     }
@@ -114,23 +121,23 @@ export default function App() {
   const handleReset = () => {
     if (confirm('Reset active character to default settings?')) {
       updateActiveCharacter(DEFAULT_CHARACTER_V2);
+      setCurrentStep(1);
     }
   };
 
-  const studioTabs = [
-    { id: 'hair', label: 'Hair Visuals', icon: Scissors },
-    { id: 'face', label: 'Face Visuals', icon: Smile },
-    { id: 'skin', label: 'Skin Visuals', icon: Sparkles },
-    { id: 'clothing', label: 'Outfit Visuals', icon: Shirt },
-    { id: 'body', label: 'Body & Proportions', icon: Activity },
-    { id: 'personality', label: 'Personality', icon: Heart },
-    { id: 'memory', label: 'Memory Engine', icon: BookOpen },
-    { id: 'emotion', label: 'Emotions & Status', icon: Drama },
-    { id: 'accessories', label: 'Accessories', icon: Glasses },
-    { id: 'image', label: 'Image Studio', icon: Image },
-    { id: 'video', label: 'Video Generation', icon: Video },
-    { id: 'json', label: 'Structured JSON', icon: Code },
-  ];
+  const handleWizardNext = () => {
+    if (currentStep < 10) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      setActivePage('chat');
+    }
+  };
+
+  const handleWizardPrev = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-dark-900 text-slate-100 font-sans selection:bg-brand-500 selection:text-white">
@@ -144,86 +151,158 @@ export default function App() {
       {/* Top Navigation Bar */}
       <Navbar
         character={activeCharacter}
-        activePage={activePage}
-        setActivePage={setActivePage}
+        activePage={activePage === 'wizard' ? 'studio' : activePage}
+        setActivePage={(p) => {
+          if (p === 'studio') {
+            setActivePage('wizard');
+          } else {
+            setActivePage(p);
+          }
+        }}
         onSelectPreset={handleSelectPreset}
         onExportJSON={handleExportJSON}
         onImportJSON={handleImportJSON}
         onReset={handleReset}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
-        {activePage === 'library' ? (
+      {/* Main Content Workspace */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col">
+        {/* Welcome Screen */}
+        {activePage === 'welcome' && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto py-12 space-y-6 animate-fadeIn">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-brand-600 via-brand-500 to-brand-accent flex items-center justify-center text-white shadow-2xl shadow-brand-500/40 glow-brand">
+              <Sparkles className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-brand-400 uppercase tracking-widest px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30">
+                Project Lilith V3 &bull; AAA AI Companion Platform
+              </span>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-white font-sans tracking-tight">
+                Create Your Living Digital Companion
+              </h2>
+              <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                Guided visual creation experience with dynamic identity consistency, live AI portrait updates, companion memory engine, and real-time interaction.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full max-w-md">
+              <button
+                onClick={() => {
+                  setCurrentStep(1);
+                  setActivePage('wizard');
+                }}
+                className="flex-1 py-4 px-6 rounded-2xl font-extrabold text-sm bg-gradient-to-r from-brand-600 via-brand-500 to-brand-accent text-white shadow-xl shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2"
+              >
+                Create Companion <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setActivePage('library')}
+                className="py-4 px-6 rounded-2xl bg-dark-800 hover:bg-dark-700 border border-slate-700 text-slate-200 font-bold text-sm transition flex items-center justify-center gap-2"
+              >
+                <LayoutGrid className="w-4 h-4 text-brand-cyan" /> Companion Library
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Character Library Screen */}
+        {activePage === 'library' && (
           <CharacterLibrary
             characters={characterList}
             activeCharacterId={activeCharacterId}
             onSelectCharacter={(c) => {
               setActiveCharacterId(c.identity?.id);
-              setActivePage('studio');
+              setCurrentStep(1);
+              setActivePage('wizard');
             }}
             onCreateNew={handleCreateNew}
             onDuplicate={handleDuplicate}
             onDelete={handleDelete}
           />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column: AAA Portrait HUD Preview (5 Cols on LG) */}
-            <div className="lg:col-span-5 sticky top-20">
-              <CharacterPreviewAAA
-                character={activeCharacter}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-              />
-            </div>
+        )}
 
-            {/* Right Column: Visual Creator Studio (7 Cols on LG) */}
-            <div className="lg:col-span-7 space-y-5">
-              {/* Scrollable Visual Tab Bar */}
-              <div className="glass-panel rounded-2xl p-1.5 border border-slate-800 flex items-center gap-1 overflow-x-auto scrollbar-none">
-                {studioTabs.map((t) => {
-                  const Icon = t.icon;
-                  const isActive = activeTab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setActiveTab(t.id)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
-                        isActive
-                          ? 'bg-gradient-to-r from-brand-600 to-brand-accent text-white shadow-md shadow-brand-500/25'
-                          : 'text-slate-400 hover:text-white hover:bg-dark-800/60'
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                      {t.label}
-                    </button>
-                  );
-                })}
+        {/* Interactive Companion Chat Screen */}
+        {activePage === 'chat' && (
+          <CompanionChatScreen
+            character={activeCharacter}
+            onBackToCreator={() => setActivePage('wizard')}
+          />
+        )}
+
+        {/* Image Studio Standalone Screen */}
+        {activePage === 'image' && (
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+            <ImageStudioTab character={activeCharacter} onChange={updateActiveCharacter} />
+          </div>
+        )}
+
+        {/* Video Studio Standalone Screen */}
+        {activePage === 'video' && (
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+            <VideoStudioTab character={activeCharacter} onChange={updateActiveCharacter} />
+          </div>
+        )}
+
+        {/* JSON Data Hub Standalone Screen */}
+        {activePage === 'json' && (
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+            <JsonDataTab character={activeCharacter} onChange={updateActiveCharacter} />
+          </div>
+        )}
+
+        {/* 10-Step Guided Wizard Creator Flow */}
+        {activePage === 'wizard' && (
+          <div className="flex-1 flex flex-col justify-between space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left 55% / 5-col: Dominant Live AI Companion Hero Preview */}
+              <div className="lg:col-span-5 sticky top-20">
+                <AICompanionPreviewV3
+                  character={activeCharacter}
+                  activeTab="hero"
+                  setActiveTab={() => {}}
+                />
               </div>
 
-              {/* Active Tab Panel */}
-              <div className="min-h-[500px]">
-                {activeTab === 'hair' && <VisualHairTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'face' && <VisualFaceTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'skin' && <VisualSkinTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'clothing' && <VisualOutfitTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'body' && <BodyEditorTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'personality' && <VisualPersonalityTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'memory' && <MemoryStudioTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'emotion' && <EmotionRelationshipTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'accessories' && <AccessoriesEditorTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'image' && <ImageStudioTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'video' && <VideoStudioTab character={activeCharacter} onChange={updateActiveCharacter} />}
-                {activeTab === 'json' && <JsonDataTab character={activeCharacter} onChange={updateActiveCharacter} />}
+              {/* Right 45% / 7-col: Focused Single-Decision Wizard Step Container */}
+              <div className="lg:col-span-7 glass-panel p-6 rounded-3xl border border-slate-800 shadow-2xl min-h-[500px]">
+                <WizardStepContainer stepKey={currentStep}>
+                  {currentStep === 1 && <Step1_Style character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 2 && <Step2_Ethnicity character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 3 && <Step3_Face character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 4 && <Step4_Hair character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 5 && <Step5_Eyes character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 6 && <Step6_Body character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 7 && <Step7_Outfit character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 8 && <Step8_PersonalityVoice character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 9 && <Step9_StoryMemory character={activeCharacter} onChange={updateActiveCharacter} />}
+                  {currentStep === 10 && (
+                    <Step10_Complete
+                      character={activeCharacter}
+                      onStartChat={() => setActivePage('chat')}
+                      onOpenImageStudio={() => setActivePage('image')}
+                      onOpenVideoStudio={() => setActivePage('video')}
+                    />
+                  )}
+                </WizardStepContainer>
               </div>
             </div>
+
+            {/* Bottom Wizard Bar Navigation */}
+            <BottomWizardBar
+              currentStep={currentStep}
+              totalSteps={10}
+              onPrev={handleWizardPrev}
+              onNext={handleWizardNext}
+            />
           </div>
         )}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
-        Lilith V2 Premium AI Companion Platform &bull; 18+ Adult Fictional Character Compliance Enforced
+        Lilith V3 AAA AI Companion Platform &bull; 18+ Adult Fictional Character Compliance Enforced
       </footer>
     </div>
   );
