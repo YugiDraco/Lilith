@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #090b10;
+    color: #f1f5f9;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #11141e;
+}
+::-webkit-scrollbar-thumb {
+  background: #252c3d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #343d54;
+}
+
+/* Custom Range Input Styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #1a1f2c;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid #252c3d;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -5px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.7);
+}
+
+/* Glassmorphism card styles */
+.glass-panel {
+  background: rgba(17, 20, 30, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(26, 31, 44, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glow-brand {
+  box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.3);
+}
+
+.glow-accent {
+  box-shadow: 0 0 25px -5px rgba(236, 72, 153, 0.3);
+}
