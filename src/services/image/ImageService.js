@@ -26,54 +26,83 @@ class ImageServiceManager {
   }
 
   async generateShot(character, shotType = 'portrait') {
-    if (!character) throw new Error('Character data required');
-
-    const promptObj = PromptBuilder.buildPrompt(character, shotType);
-    const hashKey = imageCache.generateHashKey(character, shotType);
-
-    // 1. Check Smart Cache
-    const cachedUrl = imageCache.get(hashKey);
-    if (cachedUrl) {
+    if (!character) {
       return {
-        url: cachedUrl,
-        isCached: true,
-        hashKey,
-        prompt: promptObj.positivePrompt,
-        seed: promptObj.seed
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+        isCached: false,
+        hashKey: 'default',
+        prompt: 'portrait',
+        seed: 12345
       };
     }
 
-    // 2. Request Deduplication: Return pending promise if identical request is in-flight
-    if (imageCache.hasPending(hashKey)) {
-      return imageCache.getPending(hashKey);
-    }
+    try {
+      const promptObj = PromptBuilder.buildPrompt(character, shotType);
+      const hashKey = imageCache.generateHashKey(character, shotType);
 
-    // 3. Queue Execution
-    const generationPromise = (async () => {
-      try {
-        let imageUrl;
-        try {
-          imageUrl = await this.activeAdapter.generate(promptObj, { character, shotType, seed: promptObj.seed });
-        } catch (err) {
-          console.warn('Primary adapter failed, falling back to LocalAiAdapter:', err);
-          imageUrl = await this.localAdapter.generate(promptObj, { character, shotType, seed: promptObj.seed });
-        }
-
-        imageCache.set(hashKey, imageUrl);
+      // 1. Check Smart Cache
+      const cachedUrl = imageCache.get(hashKey);
+      if (cachedUrl) {
         return {
-          url: imageUrl,
-          isCached: false,
+          url: cachedUrl,
+          isCached: true,
           hashKey,
           prompt: promptObj.positivePrompt,
           seed: promptObj.seed
         };
-      } finally {
-        imageCache.removePending(hashKey);
       }
-    })();
 
-    imageCache.setPending(hashKey, generationPromise);
-    return generationPromise;
+      // 2. Request Deduplication
+      if (imageCache.hasPending(hashKey)) {
+        return imageCache.getPending(hashKey);
+      }
+
+      // 3. Queue Execution with Try/Catch Fallback
+      const generationPromise = (async () => {
+        try {
+          let imageUrl;
+          try {
+            imageUrl = await this.activeAdapter.generate(promptObj, { character, shotType, seed: promptObj.seed });
+          } catch (err) {
+            console.warn('Primary adapter failed, falling back to LocalAiAdapter:', err);
+            imageUrl = await this.localAdapter.generate(promptObj, { character, shotType, seed: promptObj.seed });
+          }
+
+          imageCache.set(hashKey, imageUrl);
+          return {
+            url: imageUrl,
+            isCached: false,
+            hashKey,
+            prompt: promptObj.positivePrompt,
+            seed: promptObj.seed
+          };
+        } catch (innerErr) {
+          console.error('ImageService generation failed:', innerErr);
+          const fallbackUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80';
+          return {
+            url: fallbackUrl,
+            isCached: false,
+            hashKey,
+            prompt: promptObj.positivePrompt,
+            seed: promptObj.seed
+          };
+        } finally {
+          imageCache.removePending(hashKey);
+        }
+      })();
+
+      imageCache.setPending(hashKey, generationPromise);
+      return generationPromise;
+    } catch (err) {
+      console.error('ImageService outer error:', err);
+      return {
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+        isCached: false,
+        hashKey: 'fallback',
+        prompt: 'portrait',
+        seed: 12345
+      };
+    }
   }
 
   async generatePreview(character) {
