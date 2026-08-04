@@ -1,4 +1,9 @@
-import { validateCharacterData } from '../types/character';
+import { validateAndNormalizeCharacterJSON } from '../schemas/CharacterSchema';
+
+/**
+ * Character JSON Exporter & Importer Utility for Lilith V3
+ * Uses CharacterSchema.js as the SINGLE source of truth for both export & import validation.
+ */
 
 export function exportCharacterToJSON(character) {
   return JSON.stringify(character, null, 2);
@@ -19,18 +24,20 @@ export function downloadCharacterJSON(character, filename = 'character_anatomy.j
 
 export function parseAndValidateJSON(jsonString) {
   try {
-    const data = JSON.parse(jsonString);
-    const validation = validateCharacterData(data);
+    const rawObj = JSON.parse(jsonString);
+    const result = validateAndNormalizeCharacterJSON(rawObj);
     return {
-      success: validation.valid,
-      data: validation.valid ? data : null,
-      errors: validation.errors
+      success: result.valid,
+      data: result.data,
+      errors: result.errors,
+      warnings: result.warnings || []
     };
   } catch (err) {
     return {
       success: false,
       data: null,
-      errors: [`JSON Syntax Error: ${err.message}`]
+      errors: [`JSON Syntax Error: ${err.message}`],
+      warnings: []
     };
   }
 }
