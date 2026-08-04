@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ImagePreviewService } from '../../services/ImagePreviewService';
-import { Sparkles, ShieldCheck, Heart, Volume2, Lock, RefreshCw, Camera } from 'lucide-react';
+import { PreviewApi } from '../../services/image/PreviewApi';
+import { imageHistory } from '../../services/image/ImageHistory';
+import { Sparkles, ShieldCheck, Heart, Volume2, Lock, RefreshCw, Camera, Download, Bookmark, Undo2 } from 'lucide-react';
 
 export default function AIGeneratedCompanionPreview({ character, activeVariation = 'portrait', onSelectVariation }) {
-  const [imageUrl, setImageUrl] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCached, setIsCached] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   const {
     identity = {},
@@ -19,16 +21,19 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
     image = {}
   } = character;
 
-  // Fetch or generate AI preview on any visual attribute change
+  // 700 ms Debounced AI Preview Generation Queue via PreviewApi
   useEffect(() => {
     let isMounted = true;
     setIsGenerating(true);
 
-    ImagePreviewService.fetchPreview(character, activeVariation).then(res => {
+    PreviewApi.requestPreviewDebounced(character, activeVariation, (res) => {
       if (isMounted) {
-        setImageUrl(res.url);
+        setCurrentImage(res);
         setIsCached(res.isCached);
         setIsGenerating(false);
+
+        // Record in history
+        imageHistory.addEntry(res);
       }
     });
 
@@ -37,8 +42,9 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
     };
   }, [
     character.identity?.id,
-    hair.assetId, hair.style, hair.baseColor, eyes.assetId, eyes.color,
-    skin.assetId, skin.tone, clothing.activeCategory, clothing.outfitAssetId,
+    hair.assetId, hair.style, hair.baseColor, hair.highlights,
+    eyes.assetId, eyes.color, skin.assetId, skin.tone,
+    clothing.activeCategory, clothing.outfitAssetId,
     image.artStyle, image.environmentAssetId, image.poseAssetId, activeVariation
   ]);
 
@@ -53,12 +59,25 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
     { id: 'portrait', label: 'Portrait' },
     { id: 'fullbody', label: 'Full Body' },
     { id: 'selfie', label: 'Selfie' },
-    { id: 'sitting', label: 'Sitting' },
+    { id: 'profile', label: 'Side Profile' },
+    { id: 'sitting', label: 'Seated' },
     { id: 'coffee', label: 'Coffee Shop' },
-    { id: 'gym', label: 'Gym' },
-    { id: 'beach', label: 'Beach' },
-    { id: 'bedroom', label: 'Bedroom' }
+    { id: 'gym', label: 'Fitness Gym' },
+    { id: 'beach', label: 'Sunset Beach' }
   ];
+
+  const handleDownload = () => {
+    if (currentImage?.url) {
+      imageHistory.downloadImage(currentImage.url, `${name.toLowerCase().replace(/\s+/g, '_')}_portrait.jpg`);
+    }
+  };
+
+  const handleToggleFavorite = () => {
+    if (currentImage?.url) {
+      imageHistory.toggleFavorite(currentImage.hashKey || 'current');
+      setIsFavorited(!isFavorited);
+    }
+  };
 
   return (
     <div className="glass-panel rounded-3xl p-6 border border-slate-700/60 shadow-2xl flex flex-col h-full relative overflow-hidden glow-brand">
@@ -70,7 +89,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
         }}
       />
 
-      {/* Top HUD Status Bar */}
+      {/* Top HUD Status & History Bar */}
       <div className="relative z-10 pb-3 mb-3 border-b border-slate-800 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -82,8 +101,31 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 font-mono text-[11px] text-brand-300">
-            <Lock className="w-3.5 h-3.5 text-brand-400" /> Identity Locked
+          {/* Action Tools: Download, Favorite */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleFavorite}
+              className={`p-1.5 rounded-lg border transition ${
+                isFavorited
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
+                  : 'bg-dark-900/80 border-slate-800 text-slate-400 hover:text-white'
+              }`}
+              title="Bookmark Favorite Shot"
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={handleDownload}
+              className="p-1.5 rounded-lg bg-dark-900/80 border border-slate-800 text-slate-400 hover:text-white transition"
+              title="Download Companion Image"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="flex items-center gap-1 font-mono text-[11px] text-brand-300 ml-1">
+              <Lock className="w-3.5 h-3.5 text-brand-400" /> Identity Locked
+            </div>
           </div>
         </div>
 
@@ -125,7 +167,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
 
       {/* Main Pure AI Image Preview Display (Zero SVG Mannequin) */}
       <div className="relative flex-1 bg-dark-900/95 rounded-2xl border border-slate-800 flex items-center justify-center p-2 min-h-[440px] overflow-hidden group">
-        {/* Animated Loading Shimmer Overlay */}
+        {/* Animated Loading Shimmer & Particles Overlay */}
         <AnimatePresence>
           {isGenerating && (
             <motion.div
@@ -134,13 +176,17 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-30 bg-dark-900/85 backdrop-blur-md flex flex-col items-center justify-center gap-3 text-brand-400"
             >
-              <RefreshCw className="w-9 h-9 animate-spin text-brand-400" />
+              <div className="relative flex items-center justify-center">
+                <RefreshCw className="w-10 h-10 animate-spin text-brand-400" />
+                <Sparkles className="w-4 h-4 text-brand-accent absolute animate-ping" />
+              </div>
+
               <div className="text-center space-y-1">
                 <span className="text-xs font-extrabold text-white tracking-widest uppercase font-sans animate-pulse block">
-                  Generating AI Companion Preview...
+                  Synthesizing AI Companion Preview...
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  Synthesizing Identity Lock & Visual Assets
+                  Preserving Identity Token & Facial Features (700ms Debounce)
                 </span>
               </div>
             </motion.div>
@@ -149,9 +195,9 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
 
         {/* Pure AI Rendered Character Portrait Photograph (NO SVG Mannequin) */}
         <AnimatePresence mode="wait">
-          {imageUrl && (
+          {currentImage?.url && (
             <motion.div
-              key={imageUrl}
+              key={currentImage.url}
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.02 }}
@@ -159,7 +205,7 @@ export default function AIGeneratedCompanionPreview({ character, activeVariation
               className="w-full h-full flex flex-col items-center justify-center relative z-10"
             >
               <img
-                src={imageUrl}
+                src={currentImage.url}
                 alt={name}
                 className="w-full h-full max-h-[440px] object-cover rounded-xl shadow-2xl border border-slate-700/60"
               />
